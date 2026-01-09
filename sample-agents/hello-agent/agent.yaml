@@ -1,0 +1,40 @@
+apiVersion: postqode.io/v1
+kind: Agent
+metadata:
+  name: hello-agent
+  version: 1.0.0
+
+spec:
+  displayName: Hello Agent
+  description: A simple demo agent that echoes messages with optional transformations. Great for testing the PostQode runtime.
+  
+  runtime:
+    minVersion: "1.0.0"
+    supportedRuntimes:
+      - postqode-runtime
+      - docker
+  
+  adapters:
+    - openai
+    - anthropic
+  
+  inputs:
+    - name: message
+      type: string
+      required: true
+      description: Message to echo back
+    - name: uppercase
+      type: boolean
+      required: false
+      description: Whether to uppercase the response
+  
+  outputs:
+    - name: response
+      type: string
+      description: Echoed message
+    - name: timestamp
+      type: string
+      description: Processing timestamp
+  
+  config:
+    greeting: "Hello from PostQode Agent!"

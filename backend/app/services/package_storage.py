@@ -79,6 +79,8 @@ class PackageStorageService:
             f.write(package_content)
         
         # Extract and parse manifest
+        # Ensure temp path exists (may have been deleted by cleanup)
+        self.temp_path.mkdir(parents=True, exist_ok=True)
         temp_extract_dir = self.temp_path / str(uuid.uuid4())
         try:
             with zipfile.ZipFile(package_path, 'r') as zip_ref:
@@ -138,6 +140,8 @@ class PackageStorageService:
         manifest = None
         
         # Check if it's a valid ZIP
+        # Ensure temp path exists (may have been deleted by cleanup)
+        self.temp_path.mkdir(parents=True, exist_ok=True)
         temp_file = self.temp_path / f"{uuid.uuid4()}.zip"
         try:
             with open(temp_file, "wb") as f:

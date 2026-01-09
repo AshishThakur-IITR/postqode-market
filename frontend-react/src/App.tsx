@@ -6,7 +6,8 @@ import { MarketplacePage } from './pages/MarketplacePage';
 import { DashboardPage } from './pages/DashboardPage';
 import { PublisherDashboard } from './pages/PublisherDashboard';
 import { AgentPublishWizard } from './pages/AgentPublishWizard';
-import { AgentInstallPage } from './pages/AgentInstallPage';
+// AgentInstallPage is deprecated - unified deploy wizard is now the primary flow
+// import { AgentInstallPage } from './pages/AgentInstallPage';
 import { DeploymentDashboard } from './pages/DeploymentDashboard';
 import { AdminReviewDashboard } from './pages/AdminReviewDashboard';
 import { AgentDetailPage } from './pages/AgentDetailPage';
@@ -123,6 +124,7 @@ function AppRoutes() {
           </AuthenticatedLayout>
         </ProtectedRoute>
       } />
+      {/* Install page is deprecated - unified deploy wizard is now the primary flow
       <Route path="/install/:agentId" element={
         <ProtectedRoute>
           <AuthenticatedLayout>
@@ -130,6 +132,7 @@ function AppRoutes() {
           </AuthenticatedLayout>
         </ProtectedRoute>
       } />
+      */}
       <Route path="/deployments" element={
         <ProtectedRoute>
           <AuthenticatedLayout>

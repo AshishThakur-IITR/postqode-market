@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .endpoints import market, chat, organizations, auth, agent_auth, admin, packages, deployments
+from .endpoints import market, chat, organizations, auth, agent_auth, admin, packages, deployments, runtime, unified_deploy
 
 api_router = APIRouter()
 
@@ -16,6 +16,11 @@ api_router.include_router(organizations.router, prefix="/organizations", tags=["
 api_router.include_router(packages.router, prefix="/market", tags=["packages"])
 api_router.include_router(deployments.router, prefix="/deployments", tags=["deployments"])
 
+# Runtime management routes
+api_router.include_router(runtime.router, prefix="/runtime", tags=["runtime"])
+
+# Unified deployment (one-click deploy)
+api_router.include_router(unified_deploy.router, prefix="/unified", tags=["unified-deploy"])
+
 # Admin routes
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
-

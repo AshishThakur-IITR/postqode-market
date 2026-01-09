@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { MultiPlatformDeployWizard } from '../components/MultiPlatformDeployWizard';
 import {
-    Package, Download, Play, Server, Shield, Clock,
-    CheckCircle, ArrowLeft, Tag, Star
+    Package, Play, Server, Shield, Clock,
+    CheckCircle, ArrowLeft, Tag, Star, Rocket,
+    Terminal, ChevronDown, ChevronUp, Copy, Check
 } from 'lucide-react';
 
 interface AgentDetail {
@@ -21,6 +23,12 @@ interface AgentDetail {
     inputs_schema: any[];
     outputs_schema: any[];
     created_at: string;
+}
+
+interface InstallCommands {
+    cli: string;
+    docker: string;
+    helm: string;
 }
 
 const RUNTIME_ICONS: Record<string, string> = {
@@ -41,10 +49,21 @@ export function AgentDetailPage() {
     const [purchasing, setPurchasing] = useState(false);
     const [purchased, setPurchased] = useState(false);
     const [error, setError] = useState('');
+    const [showDeployWizard, setShowDeployWizard] = useState(false);
+    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [installCommands, setInstallCommands] = useState<InstallCommands | null>(null);
+    const [copied, setCopied] = useState('');
 
     useEffect(() => {
         fetchAgent();
+        checkLicense();
     }, [agentId]);
+
+    useEffect(() => {
+        if (purchased && agentId) {
+            fetchInstallCommands();
+        }
+    }, [purchased, agentId]);
 
     const fetchAgent = async () => {
         try {
@@ -59,12 +78,38 @@ export function AgentDetailPage() {
         }
     };
 
+    const checkLicense = async () => {
+        if (!user?.id || !agentId) return;
+        try {
+            const response = await fetch(`/api/v1/market/licenses?user_id=${user.id}&agent_id=${agentId}`);
+            if (response.ok) {
+                const licenses = await response.json();
+                if (licenses.length > 0) {
+                    setPurchased(true);
+                }
+            }
+        } catch (err) {
+            // Not purchased
+        }
+    };
+
+    const fetchInstallCommands = async () => {
+        try {
+            const response = await fetch(`/api/v1/market/agents/${agentId}/install-cmd?adapter=openai`);
+            if (response.ok) {
+                const data = await response.json();
+                setInstallCommands(data);
+            }
+        } catch (err) {
+            // Ignore
+        }
+    };
+
     const handlePurchase = async () => {
         if (!user?.id || !agent) return;
         setPurchasing(true);
 
         try {
-            // Create license for the user
             const response = await fetch('/api/v1/market/licenses', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -84,11 +129,15 @@ export function AgentDetailPage() {
         }
     };
 
-    const handleDownload = async () => {
-        if (!user?.id || !agent) return;
+    const handleDeploySuccess = (deploymentId: string) => {
+        console.log('Deployment successful:', deploymentId);
+        navigate('/deployments');
+    };
 
-        // Navigate to install page with agent context
-        navigate('/install/' + agent.id);
+    const copyToClipboard = (text: string, key: string) => {
+        navigator.clipboard.writeText(text);
+        setCopied(key);
+        setTimeout(() => setCopied(''), 2000);
     };
 
     if (loading) {
@@ -210,11 +259,15 @@ export function AgentDetailPage() {
                         <ul className="space-y-3">
                             <li className="flex items-center gap-3 text-gray-700">
                                 <CheckCircle className="w-5 h-5 text-green-500" />
-                                Agent package with all adapters
+                                Agent package with all adapters (OpenAI, Anthropic, Azure, Local)
                             </li>
                             <li className="flex items-center gap-3 text-gray-700">
                                 <CheckCircle className="w-5 h-5 text-green-500" />
-                                Docker and Kubernetes deployment configs
+                                Multi-platform deployment (Docker, K8s, Azure, VM, Edge)
+                            </li>
+                            <li className="flex items-center gap-3 text-gray-700">
+                                <CheckCircle className="w-5 h-5 text-green-500" />
+                                One-click deployment with auto-configuration
                             </li>
                             <li className="flex items-center gap-3 text-gray-700">
                                 <CheckCircle className="w-5 h-5 text-green-500" />
@@ -244,13 +297,65 @@ export function AgentDetailPage() {
                                     <CheckCircle className="w-6 h-6 text-green-600 mx-auto mb-1" />
                                     <span className="text-green-700 font-medium">License Activated!</span>
                                 </div>
+
+                                {/* One-Click Deploy Button - PRIMARY ACTION */}
                                 <button
-                                    onClick={handleDownload}
-                                    className="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 flex items-center justify-center gap-2"
+                                    onClick={() => setShowDeployWizard(true)}
+                                    className="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-green-700 flex items-center justify-center gap-2 shadow-lg"
                                 >
-                                    <Download className="w-5 h-5" />
-                                    Download & Install
+                                    <Rocket className="w-5 h-5" />
+                                    Deploy Now
                                 </button>
+
+                                <p className="text-xs text-gray-500 text-center mt-2">
+                                    Configure environment & deploy in one click
+                                </p>
+
+                                {/* Advanced: CLI Commands (collapsible) */}
+                                <div className="mt-6 pt-4 border-t">
+                                    <button
+                                        onClick={() => setShowAdvanced(!showAdvanced)}
+                                        className="w-full flex items-center justify-between text-sm text-gray-600 hover:text-gray-900"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <Terminal className="w-4 h-4" />
+                                            Manual Install (CLI)
+                                        </span>
+                                        {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                    </button>
+
+                                    {showAdvanced && installCommands && (
+                                        <div className="mt-3 space-y-3">
+                                            {/* CLI Command */}
+                                            <div className="bg-gray-900 rounded-lg p-3">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className="text-xs text-green-400">PostQode CLI</span>
+                                                    <button
+                                                        onClick={() => copyToClipboard(installCommands.cli, 'cli')}
+                                                        className="text-gray-400 hover:text-white"
+                                                    >
+                                                        {copied === 'cli' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                                    </button>
+                                                </div>
+                                                <code className="text-xs text-gray-100 break-all">{installCommands.cli}</code>
+                                            </div>
+
+                                            {/* Docker Command */}
+                                            <div className="bg-gray-900 rounded-lg p-3">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className="text-xs text-blue-400">Docker</span>
+                                                    <button
+                                                        onClick={() => copyToClipboard(installCommands.docker, 'docker')}
+                                                        className="text-gray-400 hover:text-white"
+                                                    >
+                                                        {copied === 'docker' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                                    </button>
+                                                </div>
+                                                <code className="text-xs text-gray-100 break-all">{installCommands.docker}</code>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </>
                         ) : (
                             <button
@@ -285,6 +390,19 @@ export function AgentDetailPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Multi-Platform Deploy Wizard Modal */}
+            {showDeployWizard && user && (
+                <MultiPlatformDeployWizard
+                    agentId={agent.id}
+                    agentName={agent.name}
+                    userId={user.id}
+                    onClose={() => setShowDeployWizard(false)}
+                    onSuccess={handleDeploySuccess}
+                />
+            )}
         </div>
     );
 }
+
+

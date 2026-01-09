@@ -59,6 +59,7 @@ class Agent(Base):
     credentials: Mapped[List["AgentCredential"]] = relationship("AgentCredential", back_populates="agent")
     adapters: Mapped[List["AgentAdapter"]] = relationship("AgentAdapter", back_populates="agent", cascade="all, delete-orphan")
     deployments: Mapped[List["AgentDeployment"]] = relationship("AgentDeployment", back_populates="agent")
+    versions: Mapped[List["AgentVersion"]] = relationship("AgentVersion", back_populates="agent", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Agent(id={self.id}, name={self.name}, status={self.status})>"
